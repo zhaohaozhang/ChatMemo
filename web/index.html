@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>拾忆 · 聊天记忆</title>
+  <meta name="description" content="本机保存的个人聊天资料库。从 TXT 中找回聊过的事，并核对原话。">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" aria-label="资料库">
+    <a class="brand" href="/" aria-label="拾忆首页">
+      <span class="brand-symbol">忆</span><span><strong>拾忆</strong><small>CHAT MEMORY</small></span>
+    </a>
+    <button class="primary import-trigger wide"><span aria-hidden="true">＋</span> 导入聊天记录</button>
+    <button class="secondary wide" id="new-contact-trigger">＋ 新建联系人</button>
+    <div class="section-label"><span>联系人</span><span id="contact-count">0</span></div>
+    <div id="contacts" class="contact-list"></div>
+    <div class="sidebar-bottom">
+      <button id="trash-trigger" class="nav-action"><span aria-hidden="true">♲</span> 回收站 <small id="trash-count"></small></button>
+      <button id="settings-trigger" class="nav-action"><span aria-hidden="true">⚙</span> 本地 AI 设置</button>
+      <div class="storage-note"><span class="status-dot"></span><div>资料保存在本机<small>原文与来源一起保留</small></div></div>
+    </div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><div class="breadcrumb">个人资料库 <span>/</span> <b id="breadcrumb-name">聊天记忆</b></div><div class="top-actions"><span class="pill">本地检索</span><button id="trash-contact" class="quiet danger-text" disabled>移入回收站</button><button id="export-button" class="quiet" disabled>导出 Markdown</button></div></header>
+    <div class="work-grid">
+      <main class="main">
+        <div class="title-row"><div><p class="eyebrow">从原话，找回记忆</p><h1 id="page-title">那些聊过的事，都有迹可循。</h1><p id="page-subtitle" class="subtitle">导入一份 TXT，找回某个人提过的喜好、约定和日常。</p></div><span class="folder-mark" aria-hidden="true">↳</span></div>
+        <nav class="view-switch" aria-label="联系人资料视图"><button id="topics-view" class="active" type="button" disabled>主题概览</button><button id="search-view" type="button" disabled>证据问答</button></nav>
+        <form id="search-form" class="search-form">
+          <label class="sr-only" for="query">想查找的内容</label>
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="query" maxlength="1000" placeholder="可以问：我们第一次对话是哪一天？以前和现在有什么变化？" autocomplete="off">
+          <button class="primary" id="search-button" type="submit">提问</button>
+        </form>
+        <div class="filters">
+          <label><span>说话人</span><select id="speaker"><option value="">所有人</option></select></label>
+          <label><span>从</span><input type="date" id="date-from" aria-label="开始日期"></label>
+          <label><span>至</span><input type="date" id="date-to" aria-label="结束日期"></label>
+          <button id="clear-filters" class="text-button" type="button">重置</button>
+        </div>
+        <div id="main-content"></div>
+      </main>
+      <aside class="context-panel" id="context-panel" aria-label="原文上下文">
+        <div class="panel-header"><h2>原文与上下文</h2><button id="close-context" class="icon-button" aria-label="关闭原文面板">×</button></div>
+        <div id="context-content"><div class="context-empty"><div class="quote-mark" aria-hidden="true">“</div><h3>每个回答，都有来处。</h3><p>查到记录后，点击“查看原文”，在这里核对前后对话。</p><div class="source-key"><span>说话人</span><span>时间</span><span>原始行号</span></div></div></div>
+      </aside>
+    </div>
+  </div>
+</div>
+<dialog id="new-contact-dialog" aria-labelledby="new-contact-title">
+  <form id="new-contact-form">
+    <div class="dialog-heading"><h2 id="new-contact-title">新建联系人</h2><button type="button" class="icon-button" data-close="new-contact-dialog" aria-label="关闭新建联系人">×</button></div>
+    <label class="field">联系人姓名<input id="new-contact-name" required maxlength="100" autocomplete="off" placeholder="填写姓名或备注名"></label>
+    <p class="notice">创建独立的空白档案，不包含虚构示例或其他联系人的记录。上传时仍需明确选择保存到哪个联系人。</p>
+    <p id="new-contact-error" role="alert"></p>
+    <div class="dialog-footer"><span>同名联系人也会独立保存。</span><button class="primary" id="create-contact" type="submit">创建联系人</button></div>
+  </form>
+</dialog>
+<dialog id="import-dialog" aria-labelledby="import-title">
+  <div class="dialog-heading"><div><p class="eyebrow">添加到资料库</p><h2 id="import-title">导入聊天记录</h2></div><button class="icon-button" data-close="import-dialog" aria-label="关闭导入">×</button></div>
+  <div class="drop-zone" id="drop-zone"><span class="file-symbol" aria-hidden="true">TXT</span><strong>拖放 TXT 文件到这里</strong><p>最多 5 MB · 支持 UTF-8、GB18030 和带 BOM 的 UTF-16</p><button id="pick-file" class="secondary">选择文件</button><input id="file-input" type="file" accept=".txt,text/plain" hidden></div>
+  <div id="import-preview" hidden></div>
+  <div class="dialog-footer"><span id="import-hint">解析后可以先核对，再保存。</span><button class="primary" id="confirm-import" disabled>保存到资料库</button></div>
+</dialog>
+<dialog id="trash-contact-dialog" aria-labelledby="trash-contact-title">
+  <div class="dialog-heading"><div><p class="eyebrow">可随时恢复</p><h2 id="trash-contact-title">移入回收站</h2></div><button type="button" class="icon-button" data-close="trash-contact-dialog" aria-label="取消移入回收站">×</button></div>
+  <p id="trash-contact-summary" class="dialog-intro"></p>
+  <div class="notice">移入后不会出现在检索、主题、导出或 AI 证据中。记录与 ID 会完整保留，除非你在回收站中手动永久删除。</div>
+  <div class="dialog-footer"><button type="button" class="text-button" data-close="trash-contact-dialog">取消</button><button id="confirm-trash-contact" class="primary danger-button" type="button">移入回收站</button></div>
+</dialog>
+<dialog id="trash-dialog" aria-labelledby="trash-title">
+  <div class="dialog-heading"><div><p class="eyebrow">不会自动清理</p><h2 id="trash-title">联系人回收站</h2></div><button type="button" class="icon-button" data-close="trash-dialog" aria-label="关闭回收站">×</button></div>
+  <div id="trash-list"></div>
+</dialog>
+<dialog id="purge-dialog" aria-labelledby="purge-title">
+  <form id="purge-form">
+    <div class="dialog-heading"><div><p class="eyebrow danger-text">不可撤销</p><h2 id="purge-title">永久删除联系人</h2></div><button type="button" class="icon-button" data-close="purge-dialog" aria-label="取消永久删除">×</button></div>
+    <p id="purge-summary" class="dialog-intro"></p>
+    <label class="field">输入完整联系人名称以确认<input id="purge-name" required autocomplete="off"></label>
+    <p id="purge-error" class="danger-text" role="alert"></p>
+    <div class="dialog-footer"><span>原文件、消息与来源映射将一并删除。</span><button id="confirm-purge" class="primary danger-button" type="submit">永久删除</button></div>
+  </form>
+</dialog>
+<dialog id="settings-dialog" aria-labelledby="settings-title">
+  <div class="dialog-heading"><div><p class="eyebrow">可选 · 只在本机运行</p><h2 id="settings-title">llama.cpp 一键启停</h2></div><button class="icon-button" data-close="settings-dialog" aria-label="关闭设置">×</button></div>
+  <p class="dialog-intro">时间、数量和原文检索无需模型。启用后，只把已召回的必要证据发送到 127.0.0.1 上的 llama.cpp。</p>
+  <label class="field">llama-server.exe<input id="llama-exe" autocomplete="off" placeholder="选择或粘贴 llama-server.exe 的绝对路径"></label>
+  <label class="field">GGUF 模型<input id="llama-model-file" autocomplete="off" placeholder="选择或粘贴 .gguf 的绝对路径"></label>
+  <div class="llama-grid">
+    <label class="field">端口<input id="llama-port" type="number" min="1024" max="65535" value="8080"></label>
+    <label class="field">上下文长度<input id="llama-context" type="number" min="512" value="8192"></label>
+    <label class="field">GPU 层数<input id="llama-gpu" type="number" min="-1" value="0"></label>
+    <label class="field">线程数<input id="llama-threads" type="number" min="1" value="4"></label>
+  </div>
+  <div class="notice">启动参数由程序固定组装，聊天正文不会进入命令行。停止按钮只对本页面启动且 owner token 匹配的同一进程句柄有效；外部服务不会被终止。</div>
+  <p id="ai-status" class="connection-status" role="status">尚未配置。</p>
+  <div class="dialog-footer"><button id="test-ai" class="secondary" type="button">探测本地服务</button><div class="dialog-actions"><button id="stop-llama" class="secondary" type="button" disabled>停止</button><button id="save-ai" class="secondary" type="button">保存配置</button><button id="start-llama" class="primary" type="button">保存并启动</button></div></div>
+</dialog>
+<dialog id="send-dialog" aria-labelledby="send-title">
+  <div class="dialog-heading"><div><p class="eyebrow">核对发送范围</p><h2 id="send-title">让 AI 整理这些原文</h2></div><button class="icon-button" data-close="send-dialog" aria-label="取消发送">×</button></div>
+  <p id="send-destination" class="dialog-intro"></p><div id="send-preview" class="send-preview"></div>
+  <div class="dialog-footer"><span>会发送问题与以上原文片段。</span><button id="confirm-send" class="primary">发送并整理</button></div>
+</dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
